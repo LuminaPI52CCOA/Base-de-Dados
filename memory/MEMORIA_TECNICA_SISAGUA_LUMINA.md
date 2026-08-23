@@ -323,24 +323,31 @@ public class ReguaSaudePreditivaService {
 
 ## 8. Inventário e Mapeamento de Arquivos no Repositório
 
-Estrutura de diretórios presente em `Base de Dados/`:
+Estrutura de diretórios e arquivos do repositório:
 
 ```
-c:\Users\lucas\OneDrive\Área de Trabalho\Projeto LUMINA\Base de Dados\
+Base-de-Dados/
 │
-├── MEMORIA_TECNICA_SISAGUA_LUMINA.md                   <-- Esta documentação técnica
+├── .gitignore                                           <-- Regras de exclusão para arquivos pesados (> 100MB)
+├── README.md                                            <-- Esta documentação técnica
 │
-├── Arquivos SISAGUA/                                   <-- Arquivos brutos baixados
-│   ├── cadastro_populacao_abastecida.csv               <-- Histórico anual demográfico (2014-2026)
-│   ├── controle_mensal_plano_amostragem_2023.json      <-- Regras de metas de coletas
-│   └── SISAGUA - Controle Mensal...Dicionário.pdf      <-- Manual oficial do Ministério da Saúde
+├── memory/
+│   └── MEMORIA_TECNICA_SISAGUA_LUMINA.md                <-- Cópia de referência técnica da base
 │
-└── controle_semestral_2026_csv/                        <-- Diretório de scripts e bases tratadas
-    ├── sto_andre.ipynb                                 <-- Jupyter Notebook com o Pipeline de ETL
-    ├── controle_semestral_2026.csv                     <-- Base bruta nacional semestral (~504 MB)
-    ├── sisagua_santo_andre_2026.csv                    <-- Base filtrada semestral de Sto André (~1.6 MB)
-    ├── sisagua_santo_andre_mensal_parametros_basicos_2026.csv <-- Base filtrada mensal completa (~3.2 MB)
-    └── sisagua_santo_andre_fluoreto_2026.csv           <-- Dataset refinado de Flúor para o Lumina
+└── Arquivos SISAGUA/
+    ├── Notebook - Santo Andre.ipynb                     <-- Jupyter Notebook com o Pipeline de ETL e Análise
+    │
+    ├── Tratado - Sto Andre/                             <-- Bases filtradas e tratadas (Versionadas no Git)
+    │   ├── sisagua_santo_andre_fluoreto_2026.csv        <-- Dataset refinado de Flúor para o Lumina (~312 KB)
+    │   ├── sisagua_santo_andre_mensal_parametros_basicos_2026.csv <-- Base filtrada mensal completa (~3.2 MB)
+    │   └── sisagua_semestral_santo_andre_2026.csv       <-- Base filtrada semestral de Sto André (~1.6 MB)
+    │
+    └── Arquivos de Controle (sem tratamento)/           <-- Bases brutas locais (Ignoradas no Git / > 5 GB)
+        ├── cadastro_populacao_abastecida.csv            <-- Histórico demográfico nacional (~555 MB)
+        ├── controle_mensal_parametros_basicos_2026.csv  <-- Base bruta mensal nacional (~1.89 GB)
+        ├── controle_mensal_plano_amostragem_2023.json   <-- Metas e amostragem nacional (~2.23 GB)
+        ├── controle_semestral_2026.csv                  <-- Base bruta semestral nacional (~504 MB)
+        └── SISAGUA - Controle Mensal...Dicionário.pdf   <-- Dicionário oficial do Ministério da Saúde
 ```
 
 ---
