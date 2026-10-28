@@ -129,34 +129,125 @@ O arquivo inicialmente analisado (`controle_semestral_2026.csv`) continha exclus
 
 ---
 
-## 5. Dicionário Completo de Dados das Bases do SISAGUA
+## 5. Dicionário Completo de Dados Multicamadas (Bronze, Silver e Gold)
 
-Abaixo consta a especificação de cada campo presente na base oficial de **Controle Mensal – Parâmetros Básicos 2026** (`controle_mensal_parametros_basicos_2026.csv`):
+> [!NOTE]
+> Para consulta rápida e modular, este dicionário também está versionado em documento dedicado: [DICIONARIO_DE_DADOS.md](file:///c:/Users/lucas/OneDrive/Área%20de%20Trabalho/Projeto%20LUMINA/Base-de-Dados/DICIONARIO_DE_DADOS.md).
 
-| Índice | Nome da Coluna no CSV | Tipo de Dado | Exemplo Real no Arquivo | Descrição e Regra de Negócio | Aplicação no Sistema Lumina |
-| :---: | :--- | :---: | :--- | :--- | :--- |
-| **0** | `Região Geográfica` | String | `SUDESTE` | Macrorregião do território brasileiro. | Filtro regional de alto nível. |
-| **1** | `UF` | String (2) | `SP` | Unidade da Federação. | Segmentação estadual. |
-| **2** | `Regional de Saúde` | String | `GVS VII - SANTO ANDRÉ` | Grupo de Vigilância Sanitária Regional do Estado de SP. | Governança epidemiológica regional. |
-| **3** | `Código IBGE` | Integer | `354780` | Código oficial IBGE de Santo André (6 dígitos). | **Chave primária geográfica do município.** |
-| **4** | `Município` | String | `SANTO ANDRE` | Nome por extenso do município. | Filtro textual do pipeline ETL. |
-| **5** | `Tipo da Instituição` | String | `Regional` / `Municipal` | Classificação da entidade gestora. | Metadados institucionais. |
-| **6** | `Sigla da Instituição` | String | `SABESP` | Concessionária responsável. | Validação da operadora oficial de água. |
-| **7** | `Nome da Instituição` | String | `COMPANHIA DE SANEAMENTO BASICO...` | Razão Social da concessionária ou entidade. | Rastreabilidade do prestador. |
-| **8** | `CNPJ da Instituição` | String | `43776517000180.0` | CNPJ matriz da instituição. | Metadado corporativo. |
-| **9** | `Nome do escritório regional/local`| String | `SAO PAULO SABESP` | Divisão operacional local da empresa. | Auditoria de polos de atendimento. |
-| **10** | `CNPJ do escritório regional/local`| String | `43776517064749.0` | CNPJ filial local. | Auditoria contábil/sanitária. |
-| **11** | `Tipo da Forma de Abastecimento` | String | `SAA` ou `SAC` | `SAA` = Rede Pública; `SAC` = Poço Privado. | **Filtro Crítico:** Isolar dados de `SAA` para os pacientes residenciais. |
-| **12** | `Código Forma de abastecimento` | String | `S354780000007` | Identificador único da solução no SISAGUA. | **Chave estrangeira com tabela de Cadastro.** |
-| **13** | `Nome da Forma de Abastecimento`| String | `OLHO DAGUA` / `GUSTAVO` | Nome da zona, poço ou reservatório. | Mapeamento do setor de abastecimento. |
-| **14** | `Nome da ETA / UTA` | String | `OLHO DAGUA` / `UTA GUSTAVO` | Nome da Estação de Tratamento de Água. | **Chave para o De-Para de Bairros atendidos.** |
-| **15** | `Tipo de Filtração` | String | `FILTRAÇÃO RÁPIDA` / `SEM FILTRAÇÃO` | Tecnologia da planta de tratamento. | Avaliação de complexidade operacional. |
-| **16** | `Ano de referência` | Integer | `2026` | Ano fiscal da medição. | Particionamento temporal. |
-| **17** | `Mês de referência` | Integer | `1` a `12` | Mês em que as análises laboratoriais ocorreram. | **Série temporal para detecção de tendências.** |
-| **18** | `Ponto de Monitoramento` | String | `SAÍDA DO TRATAMENTO`, `REDE DE DISTRIBUIÇÃO` | Local onde a amostra foi colhida na tubulação. | Validação da conformidade na torneira do consumidor. |
-| **19** | `Parâmetro` | String | `Fluoreto (mg/L)`, `Turbidez (uT)`, `pH` | Nome da grandeza física/química avaliada. | **Filtro:** Isolar `'Fluoreto (mg/L)'`. |
-| **20** | `Campo` | String | `Percentil 95`, `Número de amostras analisadas` | A métrica estatística representada na linha. | **Filtro:** Extrair o `Percentil 95` (concentração) e amostragem. |
-| **21** | `Valor` | String/Float| `0,8` / `0,08` / `169` | O valor medido no formato textual do governo. | **Variável alvo do algoritmo de predição.** |
+### 5.1 Camada Bronze: Base Bruta SISAGUA (Controle Mensal Parâmetros Básicos)
+Especificação dos 22 atributos presentes no arquivo oficial `controle_mensal_parametros_basicos_2026.csv` (CSV nacional bruto, separador `;`, encoding `latin-1`):
+
+| Índice | Nome da Coluna no CSV | Tipo de Dado | Exemplo Real | Nulabilidade | Descrição e Regra de Negócio | Aplicação no Sistema Lumina |
+| :---: | :--- | :---: | :--- | :---: | :--- | :--- |
+| **0** | `Região Geográfica` | String | `SUDESTE` | Não Nulo | Macrorregião geográfica brasileira (NORTE, NORDESTE, SUDESTE, SUL, CENTRO-OESTE). | Filtro de alto nível territorial. |
+| **1** | `UF` | String (2) | `SP` | Não Nulo | Sigla da Unidade da Federação. | Filtro de segmentação estadual. |
+| **2** | `Regional de Saúde` | String | `GVS VII - SANTO ANDRÉ` | Permite Nulo | Grupo de Vigilância Sanitária ou Gerência Regional do Estado. | Metadado de governança sanitária. |
+| **3** | `Código IBGE` | Integer | `354780` | Não Nulo | Código oficial IBGE do município (6 dígitos). Santo André = `354780`. | **Chave primária geográfica de integridade.** |
+| **4** | `Município` | String | `SANTO ANDRE` | Não Nulo | Nome do município em caixa alta e sem acentuação consistente. | Filtro textual de conferência no pipeline ETL. |
+| **5** | `Tipo da Instituição` | String | `Regional`, `Municipal` | Permite Nulo | Classificação de jurisdição da entidade responsável pelo abastecimento. | Metadado institucional. |
+| **6** | `Sigla da Instituição` | String | `SABESP` | Permite Nulo | Sigla da concessionária pública ou privada operadora. | Auditoria de operadora de água. |
+| **7** | `Nome da Instituição` | String | `COMPANHIA DE SANEAMENTO BASICO...` | Permite Nulo | Razão Social completa da concessionária. | Rastreabilidade do prestador. |
+| **8** | `CNPJ da Instituição` | String/Float | `43776517000180.0` | Permite Nulo | CNPJ matriz da entidade operadora (pode conter notação float `.0`). | Metadado corporativo. |
+| **9** | `Nome do escritório regional/local`| String | `SAO PAULO SABESP` | Permite Nulo | Polo de atendimento regional da companhia. | Metadado operacional. |
+| **10** | `CNPJ do escritório regional/local`| String/Float | `43776517064749.0` | Permite Nulo | CNPJ do polo regional/filial. | Auditoria contábil. |
+| **11** | `Tipo da Forma de Abastecimento` | String | `SAA`, `SAC` | Não Nulo | Classificação do tipo de suprimento hídrico (`SAA`, `SAC`, `SAI`). | **Filtro Crítico:** Isolar `SAA` (rede encanada urbana residencial). |
+| **12** | `Código Forma de abastecimento` | String | `S354780000007` | Não Nulo | Identificador único alfanumérico gerado pelo SISAGUA para o sistema. | **Chave Estrangeira lógica com bases de cadastro do SUS.** |
+| **13** | `Nome da Forma de Abastecimento`| String | `OLHO DAGUA`, `GUSTAVO` | Permite Nulo | Denominação operacional do sistema, poço ou setor de distribuição. | Segmentação de zona de abastecimento. |
+| **14** | `Nome da ETA / UTA` | String | `OLHO DAGUA`, `UTA GUSTAVO` | Permite Nulo | Nome da Estação de Tratamento de Água ou Unidade de Tratamento. | **Chave de Ligação essencial para o De-Para de Bairros.** |
+| **15** | `Tipo de Filtração` | String | `FILTRAÇÃO RÁPIDA` | Permite Nulo | Tecnologia empregada na clarificação e desinfecção física da água. | Indicador de confiabilidade do processo. |
+| **16** | `Ano de referência` | Integer | `2026` | Não Nulo | Ano civil a que se referem os laudos de potabilidade. | Particionamento temporal primário. |
+| **17** | `Mês de referência` | Integer | `1` a `12` | Não Nulo | Mês da coleta e medição laboratorial. | **Série temporal e detecção de oscilação sazonal.** |
+| **18** | `Ponto de Monitoramento` | String | `SAÍDA DO TRATAMENTO`, `REDE DE DISTRIBUIÇÃO` | Não Nulo | Local exato onde as amostras foram coletadas na infraestrutura hídrica. | **Filtro de Relevância:** Distingue dosagem na ETA vs. torneira do paciente. |
+| **19** | `Parâmetro` | String | `Fluoreto (mg/L)` | Não Nulo | Indicador físico, químico ou biológico mensurado na água. | **Filtro Primário:** Filtrar por `Fluoreto (mg/L)` para o Lumina. |
+| **20** | `Campo` | String | `Percentil 95`, `Número de amostras analisadas` | Não Nulo | A grandeza estatística ou descritor analítico registrado na linha. | **Filtro de Métrica:** Extrair `Percentil 95` para dosagem em mg/L. |
+| **21** | `Valor` | String | `0,8`, `128`, `MENOR_LD` | Permite Nulo | Resultado da medição, expresso em formato textual com vírgula decimal. | **Variável alvo do algoritmo de predição.** |
+
+---
+
+### 5.2 Domínio de Valores Aceitos (Enums e Categorias da Camada Bronze)
+
+* **`Tipo da Forma de Abastecimento` (Índice 11):**
+  * `SAA` (*Sistema de Abastecimento de Água*): Rede pública formal operada por concessionária (SABESP). **Alvo primário do Lumina (100% das residências).**
+  * `SAC` (*Solução Alternativa Coletiva*): Captações privadas (poços de indústrias, shoppings, condomínios).
+  * `SAI` (*Solução Alternativa Individual*): Poço de residência unifamiliar isolada.
+* **`Tipo de Filtração` (Índice 15):**
+  * `FILTRAÇÃO RÁPIDA`: Padrão industrial das ETAs de Santo André (coagulação, floculação, decantação e leito de areia).
+  * `FILTRAÇÃO LENTA`: Processo biológico de filtração.
+  * `SEM FILTRAÇÃO`: Captação profunda que recebe apenas desinfecção e fluoretação direta.
+* **`Ponto de Monitoramento` (Índice 18):**
+  * `SAÍDA DO TRATAMENTO`: Amostra colhida na saída imediata da ETA. Avalia a conformidade operacional da concessionária.
+  * `REDE DE DISTRIBUIÇÃO`: Amostra colhida nas torneiras e hidrantes da rua. **Reflete a água real que chega ao paciente.**
+* **`Parâmetro` (Índice 19):**
+  * `Fluoreto (mg/L)`: Principal indicador preventivo de saúde bucal (**Foco Central do Lumina**).
+  * `Cloro residual livre (mg/L)`: Indicador de desinfecção bacteriológica.
+  * `Turbidez (uT)`: Indicador de clarificação física e barreira contra protozoários.
+  * `pH`: Acidez da água (pH $< 6,0$ favorece desmineralização dentária).
+  * `Coliformes totais` e `Escherichia coli`: Indicadores de integridade microbiológica e contaminação fecal.
+* **`Campo` (Índice 20 - Métricas Analíticas):**
+  * `Percentil 95`: Valor no qual 95% das amostras mensais ficaram abaixo ou iguais (padrão sanitário oficial). **Utilizado como a concentração de Flúor do mês.**
+  * `Média das temperaturas máximas diárias(°C)`: Utilizada para calcular a faixa ideal de fluoreto segundo a média térmica da cidade.
+  * `Número de amostras analisadas`: Volume amostral do mês (significância estatística).
+  * `Número de dados > 1,5 mg/L` e `Número de dados <= 1,5 mg/L`: Contadores de conformidade com o teto legal de toxicidade/fluorose.
+
+---
+
+### 5.3 Camada Silver: Dados Otimizados (AWS S3 / Apache Parquet)
+
+Armazenamento colunar particionado em `s3://lumina-silver/sisagua/tratado/controle_mensal/` para processamento no Athena e Glue:
+
+| Nome da Coluna Parquet | Tipo no Athena | Nulabilidade | Descrição |
+| :--- | :---: | :---: | :--- |
+| `codigo_ibge` | `INT` | NOT NULL | Código IBGE do município (`354780`). |
+| `municipio` | `STRING` | NOT NULL | Nome padronizado em caixa alta (`SANTO ANDRE`). |
+| `tipo_abastecimento` | `STRING` | NOT NULL | Modalidade (`SAA` ou `SAC`). |
+| `codigo_forma` | `STRING` | NOT NULL | ID alfanumérico no SISAGUA (`S354780000007`). |
+| `nome_forma` | `STRING` | NULL | Nome do setor de abastecimento (`GUSTAVO`, `OLHO DAGUA`). |
+| `nome_eta` | `STRING` | NULL | Nome da ETA responsável. |
+| `tipo_filtracao` | `STRING` | NULL | Tecnologia de filtração. |
+| `ano_referencia` | `INT` | NOT NULL | Ano da medição (chave de partição). |
+| `mes_referencia` | `INT` | NOT NULL | Mês da medição (chave de partição). |
+| `ponto_monitoramento` | `STRING` | NOT NULL | `SAÍDA DO TRATAMENTO` ou `REDE DE DISTRIBUIÇÃO`. |
+| `parametro` | `STRING` | NOT NULL | Grandeza avaliada (`Fluoreto (mg/L)`). |
+| `campo_metrica` | `STRING` | NOT NULL | Métrica estatística (`Percentil 95`). |
+| `valor_medido` | `DOUBLE` | NULL | Concentração tratada numericamente (ponto decimal). |
+| `flag_censurado` | `BOOLEAN` | NOT NULL | `TRUE` se o laudo original continha `MENOR_LD` ou `MENOR_LQ`. |
+| `data_processamento` | `TIMESTAMP` | NOT NULL | Carimbo de data/hora da geração do Parquet. |
+
+---
+
+### 5.4 Camada Gold / Produção: Dicionário das Tabelas Relacionais (MySQL)
+
+Esquema de banco de dados relacional que sustenta as regras de negócio no Spring Boot:
+
+#### Atributos de `tbl_qualidade_agua_sisagua` (Medições Históricas Consolidadas):
+| Atributo SQL | Tipo Físico | Chave | Nulo | Descrição e Regra de Negócio |
+| :--- | :--- | :---: | :---: | :--- |
+| `id_medicao` | `BIGINT` | PK | Não | Chave surrogate autoincrementada. |
+| `codigo_ibge` | `INT` | Index | Não | Código IBGE do município (ex: `354780`). |
+| `municipio` | `VARCHAR(100)` | - | Não | Nome do município (`SANTO ANDRE`). |
+| `tipo_abastecimento` | `ENUM('SAA','SAC','SAI')`| - | Não | Tipo de sistema; consultas da régua filtram `'SAA'`. |
+| `codigo_forma` | `VARCHAR(50)` | - | Não | Código de cadastro no SISAGUA (`S354780000007`). |
+| `nome_forma` | `VARCHAR(150)` | - | Sim | Nome da captação ou reservatório. |
+| `nome_eta` | `VARCHAR(150)` | Index | Sim | Nome da ETA. **Chave de junção com `tbl_zona_abastecimento_bairro`.** |
+| `ano_referencia` | `INT` | Index | Não | Ano do laudo. |
+| `mes_referencia` | `INT` | Index | Não | Mês do laudo (1 a 12). |
+| `ponto_monitoramento` | `VARCHAR(100)` | - | Não | Local da coleta (`REDE DE DISTRIBUIÇÃO` ou `SAÍDA DO TRATAMENTO`). |
+| `parametro` | `VARCHAR(100)` | Index | Não | Nome do parâmetro (`Fluoreto (mg/L)`). |
+| `campo_metrica` | `VARCHAR(100)` | - | Não | Descritor da medição (`Percentil 95`). |
+| `valor_medido` | `DECIMAL(8,4)` | - | Sim | Concentração em $mg/L$ tratada com 4 casas decimais. |
+| `flag_censurado` | `BOOLEAN` | - | Não | Indicador de medição abaixo do limite de detecção (`MENOR_LD`). |
+| `data_importacao` | `TIMESTAMP` | - | Não | Carimbo de data/hora do insert no banco de dados. |
+
+#### Atributos de `tbl_zona_abastecimento_bairro` (De-Para Geoespacial de Distribuição):
+| Atributo SQL | Tipo Físico | Chave | Nulo | Descrição e Regra de Negócio |
+| :--- | :--- | :---: | :---: | :--- |
+| `id_relacao` | `BIGINT` | PK | Não | Chave surrogate da relação geográfica. |
+| `nome_eta` | `VARCHAR(150)` | Index | Não | Nome da ETA no SISAGUA (ex: `ETA RIO GRANDE`, `UTA GUSTAVO`). |
+| `bairro` | `VARCHAR(100)` | - | Não | Nome oficial do bairro atendido (ex: `Campestre`, `Centro`, `Vila Guiomar`). |
+| `municipio` | `VARCHAR(100)` | - | Não | Município de Santo André (`SANTO ANDRE`). |
+| `cep_prefixo` | `VARCHAR(5)` | Index | Não | Primeiros 5 dígitos do CEP atendido (ex: `'09010'`). Permite cruzamento com o CEP do paciente. |
+| `observacao` | `VARCHAR(255)` | - | Sim | Observações operacionais de manobra de rede. |
+| `data_cadastro` | `TIMESTAMP` | - | Não | Data de inserção do registro. |
 
 ---
 
@@ -329,6 +420,7 @@ Estrutura de diretórios e arquivos do repositório:
 Base-de-Dados/
 │
 ├── .gitignore                                           <-- Regras de exclusão para arquivos pesados (> 100MB)
+├── DICIONARIO_DE_DADOS.md                               <-- Dicionário completo multicamadas (Bronze, Silver e Gold)
 ├── README.md                                            <-- Esta documentação técnica
 │
 ├── memory/
